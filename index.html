@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Magic Christmas - Final Clean</title>
+    <title>Magic Christmas - Fixed Camera</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
@@ -39,12 +39,19 @@
         }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
 
-        /* Camera Preview Vandiep */
+        /* --- SỬA LẠI CSS CAMERA CHO CHUẨN --- */
         #camera-preview {
-            position: absolute; top: 15px; right: 15px;
-            width: 120px; height: 90px;
+            position: absolute; 
+            top: 15px; 
+            right: 15px;
+            width: 160px; /* Chỉ set chiều rộng, chiều cao sẽ tự tính (auto) */
+            height: auto; 
             border: 2px solid rgba(255,0,0,0.5); 
-            transform: scaleX(-1); opacity: 0.6; border-radius: 8px;
+            transform: scaleX(-1); /* Lật ngược gương */
+            opacity: 0.8; 
+            border-radius: 8px;
+            background: #000; /* Nền đen tránh bị trong suốt khi load */
+            z-index: 50;
         }
         
         /* Vandiep */
@@ -66,20 +73,18 @@
 <body>
     <div id="error-log"></div>
     
-    <!-- UI Vandiep -->
     <div id="ui-layer">
-        <!-- Vandiep -->
         <div class="guide">
             🖐 <b>Open:</b> Explode &nbsp;|&nbsp; 🫶 <b>Heart:</b> Love &nbsp;|&nbsp; ✊ <b>Fist:</b> Tree
         </div>
         <button id="btnStart" onclick="startSystem()">START MAGIC</button>
     </div>
 
-    <!-- Vandiep -->
     <div id="copyright">© by vandiep</div>
 
     <div id="canvas-container"></div>
     <video class="input_video" style="display:none"></video>
+    
     <canvas id="camera-preview"></canvas>
 
     <script>
@@ -91,6 +96,7 @@
         bgMusic.loop = true; bgMusic.volume = 1.0;
 
         const loader = new THREE.TextureLoader();
+        // Đảm bảo bạn có các file ảnh này hoặc thay thế bằng link ảnh online để test
         const photoFiles = ['./image1.jpeg', './image2.jpeg', './image3.jpeg', './image4.jpeg', './image5.jpeg'];
         const photoTextures = [];
         photoFiles.forEach((f, i) => photoTextures[i] = loader.load(f));
@@ -486,7 +492,16 @@
             hands.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
 
             hands.onResults(results => {
-                ctx.clearRect(0,0,100,75); ctx.drawImage(results.image, 0, 0, 100, 75);
+                // ===============================================
+                // SỬA LỖI CAMERA: Cập nhật size canvas động
+                // ===============================================
+                if (canvas.width !== results.image.width || canvas.height !== results.image.height) {
+                    canvas.width = results.image.width;
+                    canvas.height = results.image.height;
+                }
+
+                // Vẽ full khung hình (thay vì 100x75 như cũ)
+                ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
 
                 // --- Hand Logic  ---
                 if (results.multiHandLandmarks.length === 2) {
@@ -518,8 +533,10 @@
                 }
             });
 
+            // Sửa lỗi Camera: Bỏ fix cứng width/height để camera tự nhận diện
             const cameraUtils = new Camera(video, {
-                onFrame: async () => { await hands.send({image: video}); }, width: 320, height: 240
+                onFrame: async () => { await hands.send({image: video}); }
+                // Đã xóa width: 320, height: 240 ở đây để tương thích mọi cam
             });
             cameraUtils.start();
         }
